@@ -132,8 +132,6 @@ class MyWindow(logic,QMainWindow):
         self.vbox.addLayout(self.horizontal)
         self.vbox.addWidget(self.label2)
 
-        self.setLayout(self.vbox)
-
         self.setCentralWidget(self.widget)
 
     def language_code(self):
