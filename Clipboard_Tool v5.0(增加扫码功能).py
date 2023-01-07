@@ -30,7 +30,7 @@ class logic:
         else:
             return None
 
-    def language(self, text):
+    def language(self, text): # 暂无用
         if text.isdigit() is not True:
             for ch in text:
                 if u'\u4e00' <= ch <= u'\u9fff':
@@ -44,6 +44,7 @@ class logic:
     def scan_image(self,path):
         qrcode = cv2.imread(path) # 读取图片
         data = pyzbar.decode(qrcode)# 解析数据
+        # text = data[0].data.decode('utf-8') # 在数据中解析出二维码的data信息
         if len(data) == 1:
             return data[0].data.decode('utf-8')
         elif len(data) > 1:
@@ -62,7 +63,7 @@ class MyWindow(logic,QMainWindow):
         self.cb = None
         self.to_text = 'auto'
         self.save_image_path = './QRcode.jpg'
-        self.vbox = QVBoxLayout()
+        self.automatic = 0
         self.initUI()
 
     def on_clipboard_change(self):
@@ -78,12 +79,15 @@ class MyWindow(logic,QMainWindow):
                 for i in return_code_data:
                     self.text_brower.append(str(i))
         else:
-            self.translate_ui()
-            self.label1.setText(clipboard.text()) # 如使用自动翻译可将此行代码注释
-            # 取消注释下3行代码则自动翻译
-            # o_text, e_text = self.requests_fanyi(clipboard.text(),to_text=self.to_text)
-            # self.label1.setText(o_text)
-            # self.label2.setText(e_text)
+            if 'http' not in clipboard.text():
+                self.translate_ui()
+                if self.automatic == 0:
+                    o_text, e_text = self.requests_fanyi(clipboard.text(),to_text=self.to_text)
+                    print(o_text, e_text)
+                    self.label1.setText(o_text)
+                    self.label2.setText(e_text)
+                elif self.automatic == 1:
+                    self.label1.setText(clipboard.text())
 
         self.activateWindow()# 窗口跳到最前面
 
@@ -111,31 +115,46 @@ class MyWindow(logic,QMainWindow):
 
 
     def translate_ui(self):
-        self.widget = QWidget()
-        self.horizontal = QHBoxLayout()
-        self.label1 = QLineEdit('Waiting for clipboard changes...',self.widget) # 设置输入框
+        self.widget_for_translate = QWidget()
+        self.horizontal = QHBoxLayout() # 水平布局
+        self.label1 = QLineEdit('Waiting for clipboard changes...',self.widget_for_translate) # 设置输入框
         self.horizontal.addWidget(self.label1)
-        self.label2 = QLabel('Waiting for clipboard changes...',self.widget)
+        self.label2 = QLabel('Waiting for clipboard changes...',self.widget_for_translate)
 
-        self.button_label1 = QPushButton("Translate", self.widget)  # 设置按钮
+        self.button_label1 = QPushButton("Translate", self.widget_for_translate)  # 设置按钮
         self.horizontal.addWidget(self.button_label1)
         self.button_label1.clicked.connect(self.show_lable1_text)
 
-        self.cb = QComboBox(self.widget)
+        self.cb = QComboBox(self.widget_for_translate)
         self.cb.addItem('auto')
         self.cb.addItems(["zh","en","jp"])
         self.cb.currentIndexChanged.connect(self.language_code)
         self.horizontal.addWidget(self.cb)
 
+        self.autotranslate_arg = QComboBox(self.widget_for_translate)
+        self.autotranslate_arg.addItem('自动翻译')
+        self.autotranslate_arg.addItems(['ON','OFF'])
+        self.autotranslate_arg.currentIndexChanged.connect(self.auto_translate_arg)
+        self.horizontal.addWidget(self.autotranslate_arg)
+
         # 布局样式
-        self.vbox = QVBoxLayout(self.widget)
+        self.vbox = QVBoxLayout() # 垂直布局
+        self.vbox = QVBoxLayout(self.widget_for_translate)
         self.vbox.addLayout(self.horizontal)
         self.vbox.addWidget(self.label2)
 
-        self.setCentralWidget(self.widget)
+        # self.setLayout(self.vbox)
+
+        self.setCentralWidget(self.widget_for_translate)
 
     def language_code(self):
         self.to_text = self.cb.currentText()
+
+    def auto_translate_arg(self):
+        if self.autotranslate_arg.currentText() == 'ON':
+            self.automatic = 0
+        elif self.autotranslate_arg.currentText() == 'OFF':
+            self.automatic = 1
 
 
     def show_lable1_text(self):
@@ -146,12 +165,12 @@ class MyWindow(logic,QMainWindow):
 
 
     def scan_image_ui(self):
-        widget = QWidget()
-        horizontal = QHBoxLayout(widget)
-        self.text_brower = QTextBrowser(widget)
+        widget_for_image = QWidget()
+        horizontal = QHBoxLayout(widget_for_image)
+        self.text_brower = QTextBrowser(widget_for_image)
         horizontal.addWidget(self.text_brower)
 
-        self.setCentralWidget(widget)
+        self.setCentralWidget(widget_for_image)
 
 
 if __name__ == '__main__':
